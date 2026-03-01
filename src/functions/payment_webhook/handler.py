@@ -6,18 +6,17 @@ import uuid
 import boto3
 from botocore.exceptions import ClientError
 
-from shared.config import validate_runtime_env
+from shared.config import OUTBOX_TABLE, OUTBOUND_QUEUE_URL, validate_runtime_env
 from shared.logging_utils import http_response, log_json, resolve_correlation_id
+from shared.outbox import create_outbox_item, enqueue_outbox_event, session_phone
 from shared.secrets import load_service_secrets
 
 
 dynamodb = boto3.client("dynamodb")
-sqs = boto3.client("sqs")
 
 PAYMENTS_TABLE = os.getenv("PAYMENTS_TABLE", "")
 APPOINTMENTS_TABLE = os.getenv("APPOINTMENTS_TABLE", "")
 IDEMPOTENCY_TABLE = os.getenv("IDEMPOTENCY_TABLE", "")
-OUTBOUND_QUEUE_URL = os.getenv("OUTBOUND_QUEUE_URL", "")
 
 
 def lambda_handler(event, _context):
@@ -85,21 +84,26 @@ def lambda_handler(event, _context):
         ExpressionAttributeValues={":s": {"S": "CONFIRMED"}},
     )
 
-    sqs.send_message(
-        QueueUrl=OUTBOUND_QUEUE_URL,
-        MessageBody=json.dumps(
-            {
-                "event_type": "whatsapp.message.send.requested.v1",
-                "session_id": body.get("session_id", "unknown_session"),
-                "payload": {
-                    "type": "text",
-                    "text": "Pagamento aprovado! Sua consulta foi confirmada.",
-                },
-            },
-            ensure_ascii=True,
-        ),
-        MessageGroupId=body.get("session_id", "unknown_session"),
-        MessageDeduplicationId=f"payment-confirmed:{gateway_event_id}",
+    session_id = body.get("session_id", "unknown_session")
+    destination = body.get("patient_whatsapp") or session_phone(session_id)
+    messages = [{"type": "text", "text": "Pagamento aprovado! Sua consulta foi confirmada."}]
+    context_payload = {"appointment_id": appointment_id, "payment_id": payment_id}
+    outbox_id = create_outbox_item(
+        table_name=OUTBOX_TABLE,
+        session_id=session_id,
+        correlation_id=correlation_id,
+        destination=destination,
+        messages=messages,
+        context=context_payload,
+    )
+    enqueue_outbox_event(
+        queue_url=OUTBOUND_QUEUE_URL,
+        session_id=session_id,
+        correlation_id=correlation_id,
+        outbox_id=outbox_id,
+        destination=destination,
+        messages=messages,
+        context=context_payload,
     )
 
     log_json("INFO", "payment_webhook.completed", correlation_id, appointment_id=appointment_id, payment_id=payment_id)

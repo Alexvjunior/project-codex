@@ -66,11 +66,13 @@ Todo evento publicado internamente deve seguir este formato:
 
 ```json
 {
+  "outbox_id": "out_123",
   "to": "+5511999999999",
   "messages": [
     {"type":"text","text":"Perfeito! Tenho quarta às 14h."}
   ],
-  "context": {"appointment_id":"apt_123"}
+  "context": {"appointment_id":"apt_123"},
+  "attempt": 0
 }
 ```
 

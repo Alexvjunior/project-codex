@@ -62,3 +62,9 @@ Este diretório contém a stack inicial AWS SAM para o MVP da Secretária IA.
 ## Webhook WhatsApp
 - `GET /whatsapp-webhook`: challenge/verification da Meta.
 - `POST /whatsapp-webhook`: valida assinatura `x-hub-signature-256`, normaliza payload e publica eventos internos.
+- Dedupe de mensagens de entrada via escrita condicional por `channel_message_id` na tabela `messages`.
+
+## Outbox e envio
+- Produtores (`conversation-orchestrator`, `payment-webhook`) gravam primeiro na tabela `outbox`.
+- Em seguida publicam contrato `whatsapp.message.send.requested.v1` com `outbox_id`.
+- `whatsapp-sender` processa com idempotência e retry exponencial.

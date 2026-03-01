@@ -253,6 +253,11 @@ Resources:
                 - dynamodb:PutItem
                 - dynamodb:GetItem
               Resource: !GetAtt IdempotencyTable.Arn
+            - Sid: MessagesWrite
+              Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt MessagesTable.Arn
             - Sid: ReadSecrets
               Effect: Allow
               Action:
@@ -401,6 +406,13 @@ Resources:
               Action:
                 - sqs:SendMessage
               Resource: !GetAtt OutboundQueue.Arn
+            - Sid: OutboxWrite
+              Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:GetItem
+              Resource: !GetAtt OutboxTable.Arn
             - Sid: ReadSecrets
               Effect: Allow
               Action:
@@ -438,6 +450,11 @@ Resources:
                 - sqs:ReceiveMessage
                 - sqs:DeleteMessage
                 - sqs:GetQueueAttributes
+              Resource: !GetAtt OutboundQueue.Arn
+            - Sid: RequeueOutbound
+              Effect: Allow
+              Action:
+                - sqs:SendMessage
               Resource: !GetAtt OutboundQueue.Arn
             - Sid: OutboxWrite
               Effect: Allow

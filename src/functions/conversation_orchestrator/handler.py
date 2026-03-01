@@ -1,16 +1,9 @@
 import json
-import os
-import uuid
 
-import boto3
-
-from shared.config import validate_runtime_env
+from shared.config import OUTBOX_TABLE, OUTBOUND_QUEUE_URL, validate_runtime_env
 from shared.logging_utils import log_json, resolve_correlation_id
+from shared.outbox import create_outbox_item, enqueue_outbox_event, session_phone
 from shared.secrets import load_service_secrets
-
-
-sqs = boto3.client("sqs")
-OUTBOUND_QUEUE_URL = os.getenv("OUTBOUND_QUEUE_URL", "")
 
 
 def lambda_handler(event, _context):
@@ -26,25 +19,31 @@ def lambda_handler(event, _context):
         turn = json.loads(record["body"])
         session_id = turn.get("session_id", "unknown_session")
         turn_correlation = turn.get("correlation_id", correlation_id)
+        destination = session_phone(session_id)
 
-        # Placeholder deterministic response until LangGraph is integrated.
-        outbound = {
-            "event_id": str(uuid.uuid4()),
-            "event_type": "whatsapp.message.send.requested.v1",
-            "event_version": 1,
-            "correlation_id": turn_correlation,
-            "session_id": session_id,
-            "message_id": str(uuid.uuid4()),
-            "payload": {
+        messages = [
+            {
                 "type": "text",
                 "text": "Recebi sua mensagem e vou te ajudar com o agendamento.",
-            },
-        }
-        sqs.send_message(
-            QueueUrl=OUTBOUND_QUEUE_URL,
-            MessageBody=json.dumps(outbound, ensure_ascii=True),
-            MessageGroupId=session_id,
-            MessageDeduplicationId=f"{session_id}:{outbound['message_id']}",
+            }
+        ]
+        context = {"source": "conversation_orchestrator"}
+        outbox_id = create_outbox_item(
+            table_name=OUTBOX_TABLE,
+            session_id=session_id,
+            correlation_id=turn_correlation,
+            destination=destination,
+            messages=messages,
+            context=context,
+        )
+        enqueue_outbox_event(
+            queue_url=OUTBOUND_QUEUE_URL,
+            session_id=session_id,
+            correlation_id=turn_correlation,
+            outbox_id=outbox_id,
+            destination=destination,
+            messages=messages,
+            context=context,
         )
         emitted += 1
 

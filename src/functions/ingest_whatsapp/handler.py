@@ -1,15 +1,14 @@
 import json
 import os
-import time
 import uuid
 from base64 import b64decode
 
 import boto3
-from botocore.exceptions import ClientError
 
 from shared.events import build_event
-from shared.config import validate_runtime_env
+from shared.config import MESSAGES_TABLE, validate_runtime_env
 from shared.logging_utils import http_response, log_json, resolve_correlation_id
+from shared.messages import put_inbound_message_if_new
 from shared.secrets import load_service_secrets
 from shared.whatsapp import (
     build_session_id,
@@ -21,10 +20,8 @@ from shared.whatsapp import (
 
 
 sqs = boto3.client("sqs")
-dynamodb = boto3.client("dynamodb")
 
 INBOUND_QUEUE_URL = os.getenv("INBOUND_QUEUE_URL", "")
-IDEMPOTENCY_TABLE = os.getenv("IDEMPOTENCY_TABLE", "")
 
 
 def _plain_response(status_code: int, body: str, correlation_id: str):
@@ -63,7 +60,7 @@ def _handle_healthcheck(correlation_id: str):
             "ok": True,
             "component": "ingest-whatsapp",
             "queue_configured": bool(INBOUND_QUEUE_URL),
-            "idempotency_table_configured": bool(IDEMPOTENCY_TABLE),
+            "messages_table_configured": bool(MESSAGES_TABLE),
         },
         correlation_id,
     )
@@ -147,20 +144,18 @@ def lambda_handler(event, context):
             idempotency_key,
             event_payload,
         )
-        try:
-            dynamodb.put_item(
-                TableName=IDEMPOTENCY_TABLE,
-                Item={
-                    "idempotency_key": {"S": idempotency_key},
-                    "expires_at": {"N": str(int(time.time()) + 7 * 24 * 3600)},
-                },
-                ConditionExpression="attribute_not_exists(idempotency_key)",
-            )
-        except ClientError as exc:
-            if exc.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
-                duplicates += 1
-                continue
-            raise
+        is_new = put_inbound_message_if_new(
+            table_name=MESSAGES_TABLE,
+            session_id=session_id,
+            channel_message_id=channel_message_id,
+            raw_payload=message.get("raw_message", {}),
+            normalized_payload=event_payload,
+            correlation_id=correlation_id,
+            ttl_days=7,
+        )
+        if not is_new:
+            duplicates += 1
+            continue
 
         sqs.send_message(
             QueueUrl=INBOUND_QUEUE_URL,
