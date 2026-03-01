@@ -63,6 +63,15 @@ Globals:
         LLM_SECRET_ID: !Ref LlmSecretId
 
 Resources:
+  SharedCodeLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub "${ServiceName}-${Stage}-shared"
+      Description: Shared Python code for all lambda functions.
+      ContentUri: ../layers/shared/
+      CompatibleRuntimes:
+        - python3.11
+
   PublicHttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
@@ -226,9 +235,11 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${ServiceName}-${Stage}-ingest-whatsapp"
-      CodeUri: ../src/
-      Handler: functions.ingest_whatsapp.handler.lambda_handler
+      CodeUri: ../src/functions/ingest_whatsapp/
+      Handler: handler.lambda_handler
       Description: Validates and normalizes WhatsApp webhook payloads.
+      Layers:
+        - !Ref SharedCodeLayer
       Policies:
         - Statement:
             - Sid: SendInboundMessages
@@ -259,10 +270,12 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${ServiceName}-${Stage}-message-aggregator"
-      CodeUri: ../src/
-      Handler: functions.message_aggregator.handler.lambda_handler
+      CodeUri: ../src/functions/message_aggregator/
+      Handler: handler.lambda_handler
       Description: Debounces inbound user messages into conversation turns.
       Timeout: 60
+      Layers:
+        - !Ref SharedCodeLayer
       Policies:
         - Statement:
             - Sid: ConsumeInboundMessages
@@ -303,10 +316,12 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${ServiceName}-${Stage}-conversation-orchestrator"
-      CodeUri: ../src/
-      Handler: functions.conversation_orchestrator.handler.lambda_handler
+      CodeUri: ../src/functions/conversation_orchestrator/
+      Handler: handler.lambda_handler
       Description: Runs LangGraph orchestration and emits outbound messages.
       Timeout: 60
+      Layers:
+        - !Ref SharedCodeLayer
       Policies:
         - Statement:
             - Sid: ConsumeTurnQueue
@@ -351,9 +366,11 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${ServiceName}-${Stage}-payment-webhook"
-      CodeUri: ../src/
-      Handler: functions.payment_webhook.handler.lambda_handler
+      CodeUri: ../src/functions/payment_webhook/
+      Handler: handler.lambda_handler
       Description: Handles payment provider callbacks with deterministic logic.
+      Layers:
+        - !Ref SharedCodeLayer
       Policies:
         - Statement:
             - Sid: PaymentStateUpdates
@@ -389,10 +406,12 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub "${ServiceName}-${Stage}-whatsapp-sender"
-      CodeUri: ../src/
-      Handler: functions.whatsapp_sender.handler.lambda_handler
+      CodeUri: ../src/functions/whatsapp_sender/
+      Handler: handler.lambda_handler
       Description: Delivers outbound messages to WhatsApp Cloud API.
       Timeout: 60
+      Layers:
+        - !Ref SharedCodeLayer
       Policies:
         - Statement:
             - Sid: ConsumeOutboundQueue

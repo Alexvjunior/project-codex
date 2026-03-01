@@ -7,6 +7,7 @@ Base de implementacao do MVP de secretaria virtual para nutricionistas (WhatsApp
 
 ## Estrutura
 - `infra/`: template AWS SAM e documentacao de infraestrutura
+- `layers/`: Lambda Layers compartilhadas
 - `src/functions/`: Lambdas por responsabilidade
 - `src/shared/`: utilitarios compartilhados
 - `scripts/`: comandos operacionais de validate/build/deploy
@@ -23,3 +24,7 @@ Base de implementacao do MVP de secretaria virtual para nutricionistas (WhatsApp
 - `samconfig.toml`: configuracao de deploy por ambiente (`dev`, `staging`, `prod`)
 - `infra/environments/*.env`: parametros por stage
 - `docs/ENVIRONMENTS.md`: estrategia de variaveis e segredos
+
+## Packaging
+- Cada Lambda e empacotada individualmente (CodeUri por funcao).
+- Codigo compartilhado e entregue via Lambda Layer.

@@ -74,6 +74,7 @@ flowchart LR
 - Idempotência ponta a ponta (entrada, tools sensíveis e saída).
 - Event-driven com SQS FIFO para ordem por sessão.
 - Observabilidade desde o dia 1 (logs estruturados + métricas + alarmes).
+- Packaging individual por Lambda + Layer compartilhada para reduzir tamanho de deploy.
 
 ## Modelo de Dados (alto nível)
 - `Conversations`: estado atual da sessão (`session_id`).
