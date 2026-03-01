@@ -27,7 +27,15 @@ def lambda_handler(event, _context):
     correlation_id = resolve_correlation_id(event)
     log_json("INFO", "payment_webhook.started", correlation_id)
     validate_runtime_env()
-    secrets = load_service_secrets(whatsapp=False, payment=True, llm=False)
+    try:
+        secrets = load_service_secrets(whatsapp=False, payment=True, llm=False)
+    except ClientError as exc:
+        code = exc.response.get("Error", {}).get("Code")
+        if code == "ResourceNotFoundException":
+            log_json("WARN", "payment_webhook.payment_secret_missing", correlation_id)
+            secrets = {}
+        else:
+            raise
 
     method = (
         ((event.get("requestContext") or {}).get("http") or {}).get("method")
