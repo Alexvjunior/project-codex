@@ -27,7 +27,7 @@ Base de implementacao do MVP de secretaria virtual para nutricionistas (WhatsApp
 - `samconfig.toml`: configuracao de deploy por ambiente (`dev`, `staging`, `prod`)
 - `infra/environments/*.env`: parametros por stage
 - `docs/ENVIRONMENTS.md`: estrategia de variaveis e segredos
-- `.github/workflows/deploy-dev.yml`: pipeline de deploy automatico no ambiente `dev`
+- `.github/workflows/deploy-dev.yml`: deploy manual no ambiente `dev`
 - `.github/workflows/deploy-prod.yml`: deploy manual para `prod` com confirmacao (`confirm_prod=DEPLOY`)
 
 ## Observabilidade e Saude
