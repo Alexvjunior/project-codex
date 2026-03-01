@@ -16,7 +16,7 @@ from shared.payment_gateway import payment_generate
 from shared.rag import rag_retrieve
 from shared.secrets import get_llm_api_key, load_service_secrets
 
-from .graph import build_intent_runner
+from graph import build_intent_runner
 
 
 _ddb = boto3.client("dynamodb")
