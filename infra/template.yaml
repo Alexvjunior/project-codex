@@ -62,6 +62,11 @@ Parameters:
     Type: String
     Default: ""
     Description: Secrets Manager secret id for LLM provider credentials.
+  GeminiApiKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Gemini API key injected at deploy time (optional).
 
 Conditions:
   HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
@@ -88,6 +93,7 @@ Globals:
         WHATSAPP_SECRET_ID: !Ref WhatsAppSecretId
         PAYMENT_SECRET_ID: !Ref PaymentSecretId
         LLM_SECRET_ID: !Ref LlmSecretId
+        GEMINI_API_KEY: !Ref GeminiApiKey
         AGGREGATION_WINDOW_SECONDS: !Ref AggregationWindowSeconds
         PAYMENT_TIMEOUT_MINUTES: !Ref PaymentTimeoutMinutes
         MAX_RESCHEDULES: !Ref MaxReschedules

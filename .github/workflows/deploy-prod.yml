@@ -32,6 +32,15 @@ jobs:
             exit 1
           fi
 
+      - name: Guard Gemini secret
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "Missing required GitHub secret: GEMINI_API_KEY"
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -61,7 +70,37 @@ jobs:
         run: sam build --template-file infra/template.yaml --config-file "$SAM_CONFIG_FILE" --config-env prod
 
       - name: Deploy (prod)
-        run: sam deploy --template-file infra/template.yaml --config-file "$SAM_CONFIG_FILE" --config-env prod --no-confirm-changeset --no-fail-on-empty-changeset
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          sam deploy \
+            --template-file infra/template.yaml \
+            --stack-name secretaria-ia-prod \
+            --region "$AWS_REGION" \
+            --capabilities CAPABILITY_IAM \
+            --resolve-s3 \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              ServiceName=secretaria-ia \
+              Stage=prod \
+              LogRetentionDays=30 \
+              MessageTtlDays=7 \
+              PaymentTtlDays=180 \
+              AlarmEmail= \
+              AggregationWindowSeconds=15 \
+              PaymentTimeoutMinutes=720 \
+              MaxReschedules=1 \
+              HandoffTtlMinutes=10 \
+              OutboxMaxRetries=3 \
+              MaxTokensPerTurn=1200 \
+              MonthlyBudgetUsd=50 \
+              QueueMaxReceiveCount=5 \
+              OrchestratorP95LatencyMs=5000 \
+              WhatsAppSecretId=/secretaria-ia/prod/whatsapp \
+              PaymentSecretId=/secretaria-ia/prod/payment-gateway \
+              LlmSecretId= \
+              GeminiApiKey="$GEMINI_API_KEY"
 
       - name: Summary
         run: |

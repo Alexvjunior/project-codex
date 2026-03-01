@@ -44,6 +44,10 @@ Suggested secret keys:
 - `LLM_API_KEY`
 - `GEMINI_API_KEY`
 
+GitHub Actions (prod deploy):
+- Secret expected: `GEMINI_API_KEY`
+- Injected into Lambda env var `GEMINI_API_KEY` at deploy time.
+
 ## Rotation notes
 - Rotate secrets directly in Secrets Manager and keep the same secret name/id.
 - Lambda cold starts automatically read the newest value.

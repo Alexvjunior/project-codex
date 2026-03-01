@@ -31,6 +31,9 @@ def load_service_secrets() -> Dict[str, Dict[str, Any]]:
 
 
 def get_llm_api_key(service_secrets: Dict[str, Dict[str, Any]]) -> str:
+    if config.GEMINI_API_KEY:
+        return str(config.GEMINI_API_KEY)
+
     llm_secret = service_secrets.get("llm") or {}
     for key_name in ("GEMINI_API_KEY", "LLM_API_KEY", "API_KEY"):
         value = llm_secret.get(key_name)

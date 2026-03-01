@@ -43,6 +43,7 @@ Base de implementacao do MVP de secretaria virtual para nutricionistas (WhatsApp
 ## LLM (Gemini)
 - O projeto le credenciais de LLM via AWS Secrets Manager (`LLM_SECRET_ID`).
 - Chaves aceitas no secret: `GEMINI_API_KEY` ou `LLM_API_KEY`.
+- No deploy de `prod` pelo GitHub Actions, a chave pode ser injetada por `secrets.GEMINI_API_KEY` em `GEMINI_API_KEY` da Lambda.
 - Evite salvar API key em repositório ou variavel fixa em workflow.
 
 ## Packaging
