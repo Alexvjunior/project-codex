@@ -241,7 +241,8 @@ def lambda_handler(event, _context):
     correlation_id = resolve_correlation_id(event)
     log_json("INFO", "conversation_orchestrator.started", correlation_id)
     validate_runtime_env()
-    secrets = load_service_secrets(whatsapp=False, payment=False, llm=bool(config.LLM_SECRET_ID))
+    llm_secret_required = bool(config.LLM_SECRET_ID and not config.GEMINI_API_KEY)
+    secrets = load_service_secrets(whatsapp=False, payment=False, llm=llm_secret_required)
     intent_runner = _resolve_intent_runner(secrets)
 
     records = event.get("Records", [])
