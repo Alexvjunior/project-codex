@@ -87,7 +87,6 @@ jobs:
               LogRetentionDays=30 \
               MessageTtlDays=7 \
               PaymentTtlDays=180 \
-              AlarmEmail= \
               AggregationWindowSeconds=15 \
               PaymentTimeoutMinutes=720 \
               MaxReschedules=1 \
@@ -99,7 +98,6 @@ jobs:
               OrchestratorP95LatencyMs=5000 \
               WhatsAppSecretId=/secretaria-ia/prod/whatsapp \
               PaymentSecretId=/secretaria-ia/prod/payment-gateway \
-              LlmSecretId= \
               GeminiApiKey="$GEMINI_API_KEY"
 
       - name: Summary
