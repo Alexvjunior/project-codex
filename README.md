@@ -9,7 +9,6 @@ Base de implementacao do MVP de secretaria virtual para nutricionistas (WhatsApp
 - `infra/`: template AWS SAM e documentacao de infraestrutura
 - `layers/`: Lambda Layers compartilhadas
 - `src/functions/`: Lambdas por responsabilidade
-- `src/shared/`: utilitarios compartilhados
 - `scripts/`: comandos operacionais de validate/build/deploy
 - `*.md`: PRD, arquitetura, contratos e backlog
 
