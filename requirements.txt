@@ -1,0 +1,2 @@
+# Runtime dependencies for Lambda functions.
+boto3>=1.34.0,<2.0.0
