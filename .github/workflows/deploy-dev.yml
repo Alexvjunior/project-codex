@@ -1,0 +1,50 @@
+name: Deploy Dev
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/**"
+      - "src/**"
+      - "layers/**"
+      - "scripts/**"
+      - "samconfig.toml"
+      - "requirements.txt"
+      - ".github/workflows/deploy-dev.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Validate
+        run: sam validate --template-file infra/template.yaml --config-file samconfig.toml --config-env dev --lint
+
+      - name: Build
+        run: sam build --template-file infra/template.yaml --config-file samconfig.toml --config-env dev
+
+      - name: Deploy
+        run: sam deploy --template-file infra/template.yaml --config-file samconfig.toml --config-env dev --no-confirm-changeset --no-fail-on-empty-changeset

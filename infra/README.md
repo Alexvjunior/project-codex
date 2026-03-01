@@ -5,6 +5,7 @@ Este diretório contém a stack inicial AWS SAM para o MVP da Secretária IA.
 ## Recursos Provisionados
 - 1 Lambda Layer compartilhada (`shared`) para evitar duplicação de código entre funções
 - API Gateway HTTP (`/whatsapp-webhook`, `/payment-webhook`)
+- Endpoints técnicos de saúde (`/health/ingest`, `/health/payment`)
 - 5 Lambdas:
   - `ingest-whatsapp`
   - `message-aggregator`
@@ -57,3 +58,7 @@ Este diretório contém a stack inicial AWS SAM para o MVP da Secretária IA.
 - Cada função usa `CodeUri` específico, enviando somente o código necessário da função.
 - Código compartilhado é publicado separadamente na layer `shared`.
 - Resultado: artefatos menores por Lambda e deploy mais eficiente.
+
+## Webhook WhatsApp
+- `GET /whatsapp-webhook`: challenge/verification da Meta.
+- `POST /whatsapp-webhook`: valida assinatura `x-hub-signature-256`, normaliza payload e publica eventos internos.

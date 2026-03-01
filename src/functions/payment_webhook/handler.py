@@ -7,6 +7,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 from shared.config import validate_runtime_env
+from shared.logging_utils import http_response, log_json, resolve_correlation_id
 from shared.secrets import load_service_secrets
 
 
@@ -20,8 +21,29 @@ OUTBOUND_QUEUE_URL = os.getenv("OUTBOUND_QUEUE_URL", "")
 
 
 def lambda_handler(event, _context):
+    correlation_id = resolve_correlation_id(event)
+    log_json("INFO", "payment_webhook.started", correlation_id)
     validate_runtime_env()
     load_service_secrets()
+
+    method = (
+        ((event.get("requestContext") or {}).get("http") or {}).get("method")
+        or event.get("httpMethod")
+        or "POST"
+    ).upper()
+    raw_path = event.get("rawPath", "")
+    if method == "GET" and raw_path.endswith("/health/payment"):
+        log_json("INFO", "payment_webhook.healthcheck", correlation_id)
+        return http_response(
+            200,
+            {
+                "ok": True,
+                "component": "payment-webhook",
+                "payments_table_configured": bool(PAYMENTS_TABLE),
+                "appointments_table_configured": bool(APPOINTMENTS_TABLE),
+            },
+            correlation_id,
+        )
 
     body_raw = event.get("body") or "{}"
     body = json.loads(body_raw) if isinstance(body_raw, str) else body_raw
@@ -41,7 +63,8 @@ def lambda_handler(event, _context):
         )
     except ClientError as exc:
         if exc.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
-            return {"statusCode": 200, "body": json.dumps({"ok": True, "duplicate": True})}
+            log_json("INFO", "payment_webhook.duplicate", correlation_id, gateway_event_id=gateway_event_id)
+            return http_response(200, {"ok": True, "duplicate": True}, correlation_id)
         raise
 
     dynamodb.put_item(
@@ -79,4 +102,5 @@ def lambda_handler(event, _context):
         MessageDeduplicationId=f"payment-confirmed:{gateway_event_id}",
     )
 
-    return {"statusCode": 200, "body": json.dumps({"ok": True})}
+    log_json("INFO", "payment_webhook.completed", correlation_id, appointment_id=appointment_id, payment_id=payment_id)
+    return http_response(200, {"ok": True}, correlation_id)

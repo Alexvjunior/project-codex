@@ -75,6 +75,7 @@ flowchart LR
 - Event-driven com SQS FIFO para ordem por sessão.
 - Observabilidade desde o dia 1 (logs estruturados + métricas + alarmes).
 - Packaging individual por Lambda + Layer compartilhada para reduzir tamanho de deploy.
+- Correlação ponta a ponta por `correlation_id` em logs e eventos internos.
 
 ## Modelo de Dados (alto nível)
 - `Conversations`: estado atual da sessão (`session_id`).

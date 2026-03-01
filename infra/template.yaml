@@ -265,6 +265,18 @@ Resources:
             ApiId: !Ref PublicHttpApi
             Method: POST
             Path: /whatsapp-webhook
+        WhatsAppVerify:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PublicHttpApi
+            Method: GET
+            Path: /whatsapp-webhook
+        IngestHealthcheck:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PublicHttpApi
+            Method: GET
+            Path: /health/ingest
 
   MessageAggregatorFunction:
     Type: AWS::Serverless::Function
@@ -401,6 +413,12 @@ Resources:
             ApiId: !Ref PublicHttpApi
             Method: POST
             Path: /payment-webhook
+        PaymentHealthcheck:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref PublicHttpApi
+            Method: GET
+            Path: /health/payment
 
   WhatsappSenderFunction:
     Type: AWS::Serverless::Function
