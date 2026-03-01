@@ -1,6 +1,9 @@
 name: Deploy Prod
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       ref:
@@ -22,15 +25,23 @@ jobs:
     environment: production
     env:
       AWS_REGION: us-east-1
-      DEPLOY_REF: ${{ inputs.ref }}
       SAM_CONFIG_FILE: ${{ github.workspace }}/samconfig.toml
     steps:
       - name: Guard confirmation
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           if [ "${{ inputs.confirm_prod }}" != "DEPLOY" ]; then
             echo "Set confirm_prod=DEPLOY to allow production deployment."
             exit 1
           fi
+
+      - name: Resolve ref from workflow dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: echo "DEPLOY_REF=${{ inputs.ref }}" >> "$GITHUB_ENV"
+
+      - name: Resolve ref from push
+        if: ${{ github.event_name != 'workflow_dispatch' }}
+        run: echo "DEPLOY_REF=${GITHUB_SHA}" >> "$GITHUB_ENV"
 
       - name: Guard Gemini secret
         env:
