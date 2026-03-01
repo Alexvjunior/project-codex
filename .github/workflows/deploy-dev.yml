@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: us-east-1
+      SAM_CONFIG_FILE: ${{ github.workspace }}/samconfig.toml
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,10 +42,10 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Validate
-        run: sam validate --template-file infra/template.yaml --config-file samconfig.toml --config-env dev --lint
+        run: sam validate --template-file infra/template.yaml --config-file "$SAM_CONFIG_FILE" --config-env dev --lint
 
       - name: Build
-        run: sam build --template-file infra/template.yaml --config-file samconfig.toml --config-env dev
+        run: sam build --template-file infra/template.yaml --config-file "$SAM_CONFIG_FILE" --config-env dev
 
       - name: Deploy
-        run: sam deploy --template-file infra/template.yaml --config-file samconfig.toml --config-env dev --no-confirm-changeset --no-fail-on-empty-changeset
+        run: sam deploy --template-file infra/template.yaml --config-file "$SAM_CONFIG_FILE" --config-env dev --no-confirm-changeset --no-fail-on-empty-changeset

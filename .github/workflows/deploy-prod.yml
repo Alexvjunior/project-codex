@@ -23,6 +23,7 @@ jobs:
     env:
       AWS_REGION: us-east-1
       DEPLOY_REF: ${{ inputs.ref }}
+      SAM_CONFIG_FILE: ${{ github.workspace }}/samconfig.toml
     steps:
       - name: Guard confirmation
         run: |
@@ -54,13 +55,13 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Validate (prod config)
-        run: sam validate --template-file infra/template.yaml --config-file samconfig.toml --config-env prod --lint
+        run: sam validate --template-file infra/template.yaml --config-file "$SAM_CONFIG_FILE" --config-env prod --lint
 
       - name: Build (prod config)
-        run: sam build --template-file infra/template.yaml --config-file samconfig.toml --config-env prod
+        run: sam build --template-file infra/template.yaml --config-file "$SAM_CONFIG_FILE" --config-env prod
 
       - name: Deploy (prod)
-        run: sam deploy --template-file infra/template.yaml --config-file samconfig.toml --config-env prod --no-confirm-changeset --no-fail-on-empty-changeset
+        run: sam deploy --template-file infra/template.yaml --config-file "$SAM_CONFIG_FILE" --config-env prod --no-confirm-changeset --no-fail-on-empty-changeset
 
       - name: Summary
         run: |

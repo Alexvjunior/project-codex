@@ -22,12 +22,18 @@ parameter_overrides = "ServiceName=secretaria-ia Stage=dev LogRetentionDays=14 M
 
 [dev.deploy.parameters]
 stack_name = "secretaria-ia-dev"
+resolve_s3 = true
+capabilities = "CAPABILITY_IAM"
 parameter_overrides = "ServiceName=secretaria-ia Stage=dev LogRetentionDays=14 MessageTtlDays=7 PaymentTtlDays=180 AlarmEmail= WhatsAppSecretId=/secretaria-ia/dev/whatsapp PaymentSecretId=/secretaria-ia/dev/payment-gateway LlmSecretId=/secretaria-ia/dev/llm-provider"
 
 [staging.deploy.parameters]
 stack_name = "secretaria-ia-staging"
+resolve_s3 = true
+capabilities = "CAPABILITY_IAM"
 parameter_overrides = "ServiceName=secretaria-ia Stage=staging LogRetentionDays=14 MessageTtlDays=7 PaymentTtlDays=180 AlarmEmail= WhatsAppSecretId=/secretaria-ia/staging/whatsapp PaymentSecretId=/secretaria-ia/staging/payment-gateway LlmSecretId=/secretaria-ia/staging/llm-provider"
 
 [prod.deploy.parameters]
 stack_name = "secretaria-ia-prod"
+resolve_s3 = true
+capabilities = "CAPABILITY_IAM"
 parameter_overrides = "ServiceName=secretaria-ia Stage=prod LogRetentionDays=30 MessageTtlDays=7 PaymentTtlDays=180 AlarmEmail= WhatsAppSecretId=/secretaria-ia/prod/whatsapp PaymentSecretId=/secretaria-ia/prod/payment-gateway LlmSecretId=/secretaria-ia/prod/llm-provider"
