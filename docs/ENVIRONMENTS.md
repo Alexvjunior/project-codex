@@ -35,6 +35,11 @@ Suggested secret keys:
 - `PAYMENT_WEBHOOK_SECRET`
 - `LLM_API_KEY`
 
+## Rotation notes
+- Rotate secrets directly in Secrets Manager and keep the same secret name/id.
+- Lambda cold starts automatically read the newest value.
+- Warm containers cache values in-memory for performance; forcing new deployments refreshes all containers quickly.
+
 ## Deployment usage
 ```powershell
 ./scripts/sam-validate.ps1 -Stage dev

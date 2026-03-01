@@ -1,10 +1,12 @@
 import json
 
 from shared.config import validate_runtime_env
+from shared.secrets import load_service_secrets
 
 
 def lambda_handler(event, _context):
     validate_runtime_env()
+    load_service_secrets()
 
     sent = 0
     records = event.get("Records", [])

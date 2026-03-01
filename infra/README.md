@@ -43,6 +43,9 @@ Este diretório contém a stack inicial AWS SAM para o MVP da Secretária IA.
 - `Stage`: ambiente (`dev`, `staging`, `prod`).
 - `LogRetentionDays`: retenção dos logs.
 - `AlarmEmail`: e-mail para receber alarmes CloudWatch (opcional).
+- `WhatsAppSecretId`: secret id no Secrets Manager para credenciais Meta.
+- `PaymentSecretId`: secret id para credenciais do gateway de pagamento.
+- `LlmSecretId`: secret id para credenciais do provedor LLM.
 
 ## Estratégia de ambientes
 - Configuração SAM por ambiente: `samconfig.toml`

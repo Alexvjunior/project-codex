@@ -33,6 +33,9 @@ $logRetention = $cfg["LOG_RETENTION_DAYS"]
 $messageTtl = $cfg["MESSAGE_TTL_DAYS"]
 $paymentTtl = $cfg["PAYMENT_TTL_DAYS"]
 $alarmEmail = $cfg["ALARM_EMAIL"]
+$whatsAppSecretId = $cfg["WHATSAPP_SECRET_ID"]
+$paymentSecretId = $cfg["PAYMENT_SECRET_ID"]
+$llmSecretId = $cfg["LLM_SECRET_ID"]
 
 $stackName = "$serviceName-$stackStage"
 $overrides = @(
@@ -41,7 +44,10 @@ $overrides = @(
   "LogRetentionDays=$logRetention",
   "MessageTtlDays=$messageTtl",
   "PaymentTtlDays=$paymentTtl",
-  "AlarmEmail=$alarmEmail"
+  "AlarmEmail=$alarmEmail",
+  "WhatsAppSecretId=$whatsAppSecretId",
+  "PaymentSecretId=$paymentSecretId",
+  "LlmSecretId=$llmSecretId"
 )
 
 if ($Guided) {

@@ -23,6 +23,18 @@ Parameters:
     Type: String
     Default: ""
     Description: Optional email for CloudWatch alarm notifications.
+  WhatsAppSecretId:
+    Type: String
+    Default: ""
+    Description: Secrets Manager secret id for WhatsApp credentials.
+  PaymentSecretId:
+    Type: String
+    Default: ""
+    Description: Secrets Manager secret id for payment gateway credentials.
+  LlmSecretId:
+    Type: String
+    Default: ""
+    Description: Secrets Manager secret id for LLM provider credentials.
 
 Conditions:
   HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
@@ -46,6 +58,9 @@ Globals:
         INBOUND_QUEUE_URL: !Ref InboundQueue
         TURN_QUEUE_URL: !Ref TurnQueue
         OUTBOUND_QUEUE_URL: !Ref OutboundQueue
+        WHATSAPP_SECRET_ID: !Ref WhatsAppSecretId
+        PAYMENT_SECRET_ID: !Ref PaymentSecretId
+        LLM_SECRET_ID: !Ref LlmSecretId
 
 Resources:
   PublicHttpApi:
@@ -227,6 +242,11 @@ Resources:
                 - dynamodb:PutItem
                 - dynamodb:GetItem
               Resource: !GetAtt IdempotencyTable.Arn
+            - Sid: ReadSecrets
+              Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: "*"
       Events:
         WhatsAppWebhook:
           Type: HttpApi
@@ -266,6 +286,11 @@ Resources:
               Resource:
                 - !GetAtt ConversationsTable.Arn
                 - !GetAtt MessagesTable.Arn
+            - Sid: ReadSecrets
+              Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: "*"
       Events:
         FromInboundQueue:
           Type: SQS
@@ -309,6 +334,11 @@ Resources:
                 - !GetAtt AppointmentsTable.Arn
                 - !GetAtt PaymentsTable.Arn
                 - !GetAtt OutboxTable.Arn
+            - Sid: ReadSecrets
+              Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: "*"
       Events:
         FromTurnQueue:
           Type: SQS
@@ -342,6 +372,11 @@ Resources:
               Action:
                 - sqs:SendMessage
               Resource: !GetAtt OutboundQueue.Arn
+            - Sid: ReadSecrets
+              Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: "*"
       Events:
         PaymentWebhook:
           Type: HttpApi
@@ -374,6 +409,11 @@ Resources:
                 - dynamodb:PutItem
                 - dynamodb:UpdateItem
               Resource: !GetAtt OutboxTable.Arn
+            - Sid: ReadSecrets
+              Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: "*"
       Events:
         FromOutboundQueue:
           Type: SQS

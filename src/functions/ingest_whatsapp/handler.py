@@ -6,6 +6,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 from shared.config import validate_runtime_env
+from shared.secrets import load_service_secrets
 
 
 sqs = boto3.client("sqs")
@@ -17,6 +18,7 @@ IDEMPOTENCY_TABLE = os.getenv("IDEMPOTENCY_TABLE", "")
 
 def lambda_handler(event, _context):
     validate_runtime_env()
+    load_service_secrets()
 
     body_raw = event.get("body") or "{}"
     body = json.loads(body_raw) if isinstance(body_raw, str) else body_raw
