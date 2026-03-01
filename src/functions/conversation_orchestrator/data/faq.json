@@ -1,0 +1,14 @@
+[
+  {
+    "question": "Forma de pagamento",
+    "answer": "A confirmacao da consulta acontece automaticamente apos o pagamento aprovado."
+  },
+  {
+    "question": "Remarcacao",
+    "answer": "Voce pode remarcar conforme disponibilidade da agenda."
+  },
+  {
+    "question": "Cancelamento",
+    "answer": "O cancelamento e registrado na hora e segue a politica da clinica."
+  }
+]

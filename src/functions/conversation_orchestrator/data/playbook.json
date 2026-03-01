@@ -1,0 +1,11 @@
+[
+  {
+    "guideline": "Sempre confirmar o proximo passo com objetividade."
+  },
+  {
+    "guideline": "Quando houver falha temporaria, comunicar de forma humana e oferecer retomada."
+  },
+  {
+    "guideline": "Em pagamento pendente, lembrar que a confirmacao final depende do webhook."
+  }
+]

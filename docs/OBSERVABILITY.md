@@ -26,3 +26,25 @@ This enables tracing a request across:
 ## Healthcheck endpoints
 - `GET /health/ingest`
 - `GET /health/payment`
+
+## CloudWatch alarms and dashboard
+Implemented in `infra/template.yaml`:
+- Lambda error alarms:
+  - `*-payment-webhook-errors`
+  - `*-conversation-orchestrator-errors`
+- Latency alarm:
+  - `*-conversation-orchestrator-p95-latency`
+- Queue age alarms:
+  - `*-inbound-queue-age`
+  - `*-outbound-queue-age`
+- DLQ depth alarms:
+  - `*-inbound-dlq-depth`
+  - `*-turn-dlq-depth`
+  - `*-outbound-dlq-depth`
+
+Dashboard:
+- `secretaria-ia-<stage>-ops`
+  - Lambda errors
+  - SQS oldest message age
+  - Orchestrator duration p95
+  - DLQ visible messages

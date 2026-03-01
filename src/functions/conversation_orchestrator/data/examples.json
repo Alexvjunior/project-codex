@@ -1,0 +1,14 @@
+[
+  {
+    "context": "Paciente quer marcar primeira consulta",
+    "dialogue": "Paciente: Oi, quero agendar.\nAgente: Perfeito, vou te ajudar. Posso te mostrar os proximos horarios disponiveis?"
+  },
+  {
+    "context": "Paciente pediu para remarcar",
+    "dialogue": "Paciente: Preciso remarcar.\nAgente: Sem problema, vou buscar novos horarios para voce agora."
+  },
+  {
+    "context": "Paciente pediu cancelamento",
+    "dialogue": "Paciente: Quero cancelar.\nAgente: Entendi. Vou registrar seu cancelamento e te confirmar em seguida."
+  }
+]

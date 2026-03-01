@@ -1,18 +1,17 @@
+import hashlib
 import json
-import os
 import uuid
 
 import boto3
 
+from shared import config
+from shared.events import build_event
 from shared.config import validate_runtime_env
 from shared.logging_utils import log_json, resolve_correlation_id
 from shared.secrets import load_service_secrets
 
 
 sqs = boto3.client("sqs")
-
-TURN_QUEUE_URL = os.getenv("TURN_QUEUE_URL", "")
-
 
 def lambda_handler(event, _context):
     correlation_id = resolve_correlation_id(event)
@@ -34,20 +33,30 @@ def lambda_handler(event, _context):
         grouped.setdefault(session_id, []).append(payload)
 
     for session_id, items in grouped.items():
-        turn = {
-            "event_id": str(uuid.uuid4()),
-            "event_type": "conversation.turn.ready.v1",
-            "event_version": 1,
-            "correlation_id": correlation_id,
-            "session_id": session_id,
-            "turn_id": str(uuid.uuid4()),
-            "messages": items,
+        sorted_items = sorted(
+            items,
+            key=lambda i: ((i.get("payload") or {}).get("received_at", ""), i.get("event_id", "")),
+        )
+        dedupe_base = "|".join(str(i.get("event_id", "")) for i in sorted_items)
+        turn_hash = hashlib.sha256(f"{session_id}|{dedupe_base}".encode("utf-8")).hexdigest()
+        turn_id = str(uuid.UUID(turn_hash[:32]))
+        turn_payload = {
+            "turn_id": turn_id,
+            "messages": [i.get("payload", {}) for i in sorted_items],
+            "window_seconds": config.AGGREGATION_WINDOW_SECONDS,
         }
+        turn_event = build_event(
+            event_type="conversation.turn.ready.v1",
+            session_id=session_id,
+            correlation_id=correlation_id,
+            idempotency_key=f"turn:{session_id}:{turn_id}",
+            payload=turn_payload,
+        )
         sqs.send_message(
-            QueueUrl=TURN_QUEUE_URL,
-            MessageBody=json.dumps(turn, ensure_ascii=True),
+            QueueUrl=config.TURN_QUEUE_URL,
+            MessageBody=json.dumps(turn_event, ensure_ascii=True),
             MessageGroupId=session_id,
-            MessageDeduplicationId=f"{session_id}:{turn['turn_id']}",
+            MessageDeduplicationId=turn_event["idempotency_key"],
         )
 
     log_json(

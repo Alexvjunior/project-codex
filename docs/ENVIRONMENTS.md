@@ -20,6 +20,14 @@ Lambdas validate required variables at startup via `shared.config.validate_runti
 - `OUTBOX_TABLE`
 - `IDEMPOTENCY_TABLE`
 
+Operational knobs (configured by SAM parameters):
+- `AGGREGATION_WINDOW_SECONDS`
+- `PAYMENT_TIMEOUT_MINUTES`
+- `MAX_RESCHEDULES`
+- `HANDOFF_TTL_MINUTES`
+- `OUTBOX_MAX_RETRIES`
+- `MAX_TOKENS_PER_TURN`
+
 ## Secrets conventions
 Secrets are never hardcoded in repository files.
 Store and reference them per stage using AWS Secrets Manager:
@@ -51,3 +59,9 @@ For first deployment in a new account/region:
 ```powershell
 ./scripts/sam-deploy-guided.ps1 -Stage dev -Guided
 ```
+
+## Cost and reliability parameters in env files
+Each `infra/environments/<stage>.env` now defines:
+- queue retry and DLQ thresholds (`QUEUE_MAX_RECEIVE_COUNT`)
+- monthly budget (`MONTHLY_BUDGET_USD`)
+- orchestrator latency target (`ORCHESTRATOR_P95_LATENCY_MS`)

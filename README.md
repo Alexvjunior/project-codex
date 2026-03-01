@@ -3,7 +3,11 @@
 Base de implementacao do MVP de secretaria virtual para nutricionistas (WhatsApp + agenda + pagamento) em AWS.
 
 ## Status
-- `ISS-001` em andamento: infraestrutura fundacional com AWS SAM.
+- Foundation + fluxos core implementados:
+  - ingestao, agregacao, orquestracao, webhook de pagamento, sender
+  - estado de conversa, remarcacao/cancelamento/handoff, timeout de pagamento
+  - observabilidade, DLQ, budget mensal e checklist de go-live
+- Testes de integracao E2E foram adiados para a fase final.
 
 ## Estrutura
 - `infra/`: template AWS SAM e documentacao de infraestrutura
@@ -29,6 +33,11 @@ Base de implementacao do MVP de secretaria virtual para nutricionistas (WhatsApp
 - Logs estruturados com `correlation_id`
 - Endpoints de healthcheck: `GET /health/ingest`, `GET /health/payment`
 - Detalhes em `docs/OBSERVABILITY.md`
+
+## Operacao
+- `docs/RUNBOOKS.md`: incidentes e reprocessamento
+- `docs/COST_CONTROLS.md`: controles de custo e limites
+- `docs/GO_LIVE_CHECKLIST.md`: checklist de entrada em producao e SLO inicial
 
 ## Packaging
 - Cada Lambda e empacotada individualmente (CodeUri por funcao).

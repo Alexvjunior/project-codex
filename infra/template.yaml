@@ -23,6 +23,33 @@ Parameters:
     Type: String
     Default: ""
     Description: Optional email for CloudWatch alarm notifications.
+  AggregationWindowSeconds:
+    Type: Number
+    Default: 15
+  PaymentTimeoutMinutes:
+    Type: Number
+    Default: 1440
+  MaxReschedules:
+    Type: Number
+    Default: 1
+  HandoffTtlMinutes:
+    Type: Number
+    Default: 10
+  OutboxMaxRetries:
+    Type: Number
+    Default: 3
+  MaxTokensPerTurn:
+    Type: Number
+    Default: 1200
+  MonthlyBudgetUsd:
+    Type: Number
+    Default: 20
+  QueueMaxReceiveCount:
+    Type: Number
+    Default: 5
+  OrchestratorP95LatencyMs:
+    Type: Number
+    Default: 5000
   WhatsAppSecretId:
     Type: String
     Default: ""
@@ -61,6 +88,12 @@ Globals:
         WHATSAPP_SECRET_ID: !Ref WhatsAppSecretId
         PAYMENT_SECRET_ID: !Ref PaymentSecretId
         LLM_SECRET_ID: !Ref LlmSecretId
+        AGGREGATION_WINDOW_SECONDS: !Ref AggregationWindowSeconds
+        PAYMENT_TIMEOUT_MINUTES: !Ref PaymentTimeoutMinutes
+        MAX_RESCHEDULES: !Ref MaxReschedules
+        HANDOFF_TTL_MINUTES: !Ref HandoffTtlMinutes
+        OUTBOX_MAX_RETRIES: !Ref OutboxMaxRetries
+        MAX_TOKENS_PER_TURN: !Ref MaxTokensPerTurn
 
 Resources:
   SharedCodeLayer:
@@ -86,6 +119,9 @@ Resources:
       ContentBasedDeduplication: false
       VisibilityTimeout: 90
       MessageRetentionPeriod: 1209600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt InboundDlq.Arn
+        maxReceiveCount: !Ref QueueMaxReceiveCount
 
   TurnQueue:
     Type: AWS::SQS::Queue
@@ -95,6 +131,9 @@ Resources:
       ContentBasedDeduplication: false
       VisibilityTimeout: 90
       MessageRetentionPeriod: 1209600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt TurnDlq.Arn
+        maxReceiveCount: !Ref QueueMaxReceiveCount
 
   OutboundQueue:
     Type: AWS::SQS::Queue
@@ -103,6 +142,33 @@ Resources:
       FifoQueue: true
       ContentBasedDeduplication: false
       VisibilityTimeout: 90
+      MessageRetentionPeriod: 1209600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt OutboundDlq.Arn
+        maxReceiveCount: !Ref QueueMaxReceiveCount
+
+  InboundDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-${Stage}-inbound-dlq.fifo"
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      MessageRetentionPeriod: 1209600
+
+  TurnDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-${Stage}-turn-dlq.fifo"
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      MessageRetentionPeriod: 1209600
+
+  OutboundDlq:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "${ServiceName}-${Stage}-outbound-dlq.fifo"
+      FifoQueue: true
+      ContentBasedDeduplication: true
       MessageRetentionPeriod: 1209600
 
   ConversationsTable:
@@ -327,7 +393,7 @@ Resources:
           Properties:
             Queue: !GetAtt InboundQueue.Arn
             BatchSize: 10
-            MaximumBatchingWindowInSeconds: 10
+            MaximumBatchingWindowInSeconds: 20
 
   ConversationOrchestratorFunction:
     Type: AWS::Serverless::Function
@@ -360,12 +426,14 @@ Resources:
                 - dynamodb:PutItem
                 - dynamodb:UpdateItem
                 - dynamodb:Query
+                - dynamodb:TransactWriteItems
               Resource:
                 - !GetAtt ConversationsTable.Arn
                 - !GetAtt MessagesTable.Arn
                 - !GetAtt AppointmentsTable.Arn
                 - !GetAtt PaymentsTable.Arn
                 - !GetAtt OutboxTable.Arn
+                - !GetAtt IdempotencyTable.Arn
             - Sid: ReadSecrets
               Effect: Allow
               Action:
@@ -397,6 +465,7 @@ Resources:
                 - dynamodb:PutItem
                 - dynamodb:UpdateItem
                 - dynamodb:Query
+                - dynamodb:TransactWriteItems
               Resource:
                 - !GetAtt PaymentsTable.Arn
                 - !GetAtt AppointmentsTable.Arn
@@ -556,15 +625,240 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions: !If [HasAlarmEmail, [!Ref InfraAlertsTopic], !Ref "AWS::NoValue"]
 
+  ConversationOrchestratorLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ServiceName}-${Stage}-conversation-orchestrator-p95-latency"
+      AlarmDescription: Conversation orchestrator p95 latency is above target.
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      ExtendedStatistic: p95
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: !Ref OrchestratorP95LatencyMs
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ConversationOrchestratorFunction
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmEmail, [!Ref InfraAlertsTopic], !Ref "AWS::NoValue"]
+
+  InboundQueueAgeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ServiceName}-${Stage}-inbound-queue-age"
+      AlarmDescription: Inbound queue oldest message age is high.
+      Namespace: AWS/SQS
+      MetricName: ApproximateAgeOfOldestMessage
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 120
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt InboundQueue.QueueName
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmEmail, [!Ref InfraAlertsTopic], !Ref "AWS::NoValue"]
+
+  OutboundQueueAgeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ServiceName}-${Stage}-outbound-queue-age"
+      AlarmDescription: Outbound queue oldest message age is high.
+      Namespace: AWS/SQS
+      MetricName: ApproximateAgeOfOldestMessage
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 120
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt OutboundQueue.QueueName
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmEmail, [!Ref InfraAlertsTopic], !Ref "AWS::NoValue"]
+
+  InboundDlqDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ServiceName}-${Stage}-inbound-dlq-depth"
+      AlarmDescription: Inbound DLQ has messages waiting for reprocessing.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt InboundDlq.QueueName
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmEmail, [!Ref InfraAlertsTopic], !Ref "AWS::NoValue"]
+
+  TurnDlqDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ServiceName}-${Stage}-turn-dlq-depth"
+      AlarmDescription: Turn DLQ has messages waiting for reprocessing.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt TurnDlq.QueueName
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmEmail, [!Ref InfraAlertsTopic], !Ref "AWS::NoValue"]
+
+  OutboundDlqDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ServiceName}-${Stage}-outbound-dlq-depth"
+      AlarmDescription: Outbound DLQ has messages waiting for reprocessing.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt OutboundDlq.QueueName
+      TreatMissingData: notBreaching
+      AlarmActions: !If [HasAlarmEmail, [!Ref InfraAlertsTopic], !Ref "AWS::NoValue"]
+
+  OpsDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "${ServiceName}-${Stage}-ops"
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Lambda Errors",
+                "view": "timeSeries",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["AWS/Lambda", "Errors", "FunctionName", "${IngestWhatsappFunction}"],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${MessageAggregatorFunction}"],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${ConversationOrchestratorFunction}"],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${PaymentWebhookFunction}"],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${WhatsappSenderFunction}"]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "SQS Oldest Message Age",
+                "view": "timeSeries",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["AWS/SQS", "ApproximateAgeOfOldestMessage", "QueueName", "${InboundQueue.QueueName}"],
+                  ["AWS/SQS", "ApproximateAgeOfOldestMessage", "QueueName", "${TurnQueue.QueueName}"],
+                  ["AWS/SQS", "ApproximateAgeOfOldestMessage", "QueueName", "${OutboundQueue.QueueName}"]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Orchestrator Duration p95",
+                "view": "timeSeries",
+                "region": "${AWS::Region}",
+                "stat": "p95",
+                "metrics": [
+                  ["AWS/Lambda", "Duration", "FunctionName", "${ConversationOrchestratorFunction}"]
+                ]
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 6,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "DLQ Visible Messages",
+                "view": "timeSeries",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "${InboundDlq.QueueName}"],
+                  ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "${TurnDlq.QueueName}"],
+                  ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "${OutboundDlq.QueueName}"]
+                ]
+              }
+            }
+          ]
+        }
+
+  MonthlyCostBudget:
+    Type: AWS::Budgets::Budget
+    Condition: HasAlarmEmail
+    Properties:
+      Budget:
+        BudgetLimit:
+          Amount: !Ref MonthlyBudgetUsd
+          Unit: USD
+        BudgetType: COST
+        TimeUnit: MONTHLY
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlarmEmail
+
 Outputs:
   ApiBaseUrl:
     Value: !Sub "https://${PublicHttpApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
   InboundQueueUrl:
     Value: !Ref InboundQueue
+  InboundQueueArn:
+    Value: !GetAtt InboundQueue.Arn
   TurnQueueUrl:
     Value: !Ref TurnQueue
+  TurnQueueArn:
+    Value: !GetAtt TurnQueue.Arn
   OutboundQueueUrl:
     Value: !Ref OutboundQueue
+  OutboundQueueArn:
+    Value: !GetAtt OutboundQueue.Arn
+  InboundDlqUrl:
+    Value: !Ref InboundDlq
+  InboundDlqArn:
+    Value: !GetAtt InboundDlq.Arn
+  TurnDlqUrl:
+    Value: !Ref TurnDlq
+  TurnDlqArn:
+    Value: !GetAtt TurnDlq.Arn
+  OutboundDlqUrl:
+    Value: !Ref OutboundDlq
+  OutboundDlqArn:
+    Value: !GetAtt OutboundDlq.Arn
   ConversationsTableName:
     Value: !Ref ConversationsTable
   MessagesTableName:
