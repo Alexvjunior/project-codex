@@ -27,7 +27,7 @@ def lambda_handler(event, _context):
     correlation_id = resolve_correlation_id(event)
     log_json("INFO", "payment_webhook.started", correlation_id)
     validate_runtime_env()
-    secrets = load_service_secrets()
+    secrets = load_service_secrets(whatsapp=False, payment=True, llm=False)
 
     method = (
         ((event.get("requestContext") or {}).get("http") or {}).get("method")

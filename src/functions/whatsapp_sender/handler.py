@@ -59,7 +59,7 @@ def lambda_handler(event, _context):
     correlation_id = resolve_correlation_id(event)
     log_json("INFO", "whatsapp_sender.started", correlation_id)
     validate_runtime_env()
-    secrets = load_service_secrets()
+    secrets = load_service_secrets(whatsapp=True, payment=False, llm=False)
     whatsapp_secret = secrets.get("whatsapp", {})
 
     sent = 0

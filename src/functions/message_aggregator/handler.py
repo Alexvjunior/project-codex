@@ -8,7 +8,6 @@ from shared import config
 from shared.events import build_event
 from shared.config import validate_runtime_env
 from shared.logging_utils import log_json, resolve_correlation_id
-from shared.secrets import load_service_secrets
 
 
 sqs = boto3.client("sqs")
@@ -17,7 +16,6 @@ def lambda_handler(event, _context):
     correlation_id = resolve_correlation_id(event)
     log_json("INFO", "message_aggregator.started", correlation_id)
     validate_runtime_env()
-    load_service_secrets()
 
     records = event.get("Records", [])
     if not records:

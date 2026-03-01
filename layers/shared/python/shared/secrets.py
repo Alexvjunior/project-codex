@@ -17,14 +17,19 @@ def get_secret(secret_id: str) -> Dict[str, Any]:
     return json.loads(payload)
 
 
-def load_service_secrets() -> Dict[str, Dict[str, Any]]:
+def load_service_secrets(
+    *,
+    whatsapp: bool = True,
+    payment: bool = True,
+    llm: bool = True,
+) -> Dict[str, Dict[str, Any]]:
     result: Dict[str, Dict[str, Any]] = {}
 
-    if config.WHATSAPP_SECRET_ID:
+    if whatsapp and config.WHATSAPP_SECRET_ID:
         result["whatsapp"] = get_secret(config.WHATSAPP_SECRET_ID)
-    if config.PAYMENT_SECRET_ID:
+    if payment and config.PAYMENT_SECRET_ID:
         result["payment"] = get_secret(config.PAYMENT_SECRET_ID)
-    if config.LLM_SECRET_ID:
+    if llm and config.LLM_SECRET_ID:
         result["llm"] = get_secret(config.LLM_SECRET_ID)
 
     return result
