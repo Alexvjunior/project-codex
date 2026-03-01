@@ -14,14 +14,15 @@ from shared.logging_utils import log_json, resolve_correlation_id
 from shared.outbox import create_outbox_item, enqueue_outbox_event, session_phone
 from shared.payment_gateway import payment_generate
 from shared.rag import rag_retrieve
-from shared.secrets import load_service_secrets
+from shared.secrets import get_llm_api_key, load_service_secrets
 
 from .graph import build_intent_runner
 
 
 _ddb = boto3.client("dynamodb")
-_intent_runner = build_intent_runner()
 _RAG_BASE_DIR = os.path.join(os.path.dirname(__file__), "data")
+_intent_runner = None
+_intent_runner_key = ""
 
 
 def _now() -> datetime:
@@ -227,11 +228,21 @@ def _apply_cancel_policy(appointment_id: str) -> Dict[str, str]:
     }
 
 
+def _resolve_intent_runner(service_secrets: Dict[str, Dict[str, Any]]):
+    global _intent_runner, _intent_runner_key
+    api_key = get_llm_api_key(service_secrets)
+    if _intent_runner is None or api_key != _intent_runner_key:
+        _intent_runner = build_intent_runner(api_key)
+        _intent_runner_key = api_key
+    return _intent_runner
+
+
 def lambda_handler(event, _context):
     correlation_id = resolve_correlation_id(event)
     log_json("INFO", "conversation_orchestrator.started", correlation_id)
     validate_runtime_env()
-    load_service_secrets()
+    secrets = load_service_secrets()
+    intent_runner = _resolve_intent_runner(secrets)
 
     records = event.get("Records", [])
     emitted = 0
@@ -301,7 +312,7 @@ def lambda_handler(event, _context):
                 continue
 
         # Intent via LangGraph base (fallback included).
-        intent_result = _intent_runner({"latest_text": latest_text, "state": state})
+        intent_result = intent_runner({"latest_text": latest_text, "state": state})
         intent = str(intent_result.get("intent", "general"))
         log_json("INFO", "conversation_orchestrator.intent", turn_correlation, session_id=session_id, intent=intent)
 

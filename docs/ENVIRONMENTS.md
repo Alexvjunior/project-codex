@@ -42,6 +42,7 @@ Suggested secret keys:
 - `WHATSAPP_ACCESS_TOKEN`
 - `PAYMENT_WEBHOOK_SECRET`
 - `LLM_API_KEY`
+- `GEMINI_API_KEY`
 
 ## Rotation notes
 - Rotate secrets directly in Secrets Manager and keep the same secret name/id.

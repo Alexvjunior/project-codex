@@ -40,6 +40,11 @@ Base de implementacao do MVP de secretaria virtual para nutricionistas (WhatsApp
 - `docs/COST_CONTROLS.md`: controles de custo e limites
 - `docs/GO_LIVE_CHECKLIST.md`: checklist de entrada em producao e SLO inicial
 
+## LLM (Gemini)
+- O projeto le credenciais de LLM via AWS Secrets Manager (`LLM_SECRET_ID`).
+- Chaves aceitas no secret: `GEMINI_API_KEY` ou `LLM_API_KEY`.
+- Evite salvar API key em repositório ou variavel fixa em workflow.
+
 ## Packaging
 - Cada Lambda e empacotada individualmente (CodeUri por funcao).
 - Codigo compartilhado e entregue via Lambda Layer.
