@@ -18,3 +18,20 @@ IDEMPOTENCY_TABLE = get_env("IDEMPOTENCY_TABLE")
 INBOUND_QUEUE_URL = get_env("INBOUND_QUEUE_URL")
 TURN_QUEUE_URL = get_env("TURN_QUEUE_URL")
 OUTBOUND_QUEUE_URL = get_env("OUTBOUND_QUEUE_URL")
+
+REQUIRED_ENV_VARS = [
+    "STAGE",
+    "SERVICE_NAME",
+    "CONVERSATIONS_TABLE",
+    "MESSAGES_TABLE",
+    "APPOINTMENTS_TABLE",
+    "PAYMENTS_TABLE",
+    "OUTBOX_TABLE",
+    "IDEMPOTENCY_TABLE",
+]
+
+
+def validate_runtime_env() -> None:
+    missing = [name for name in REQUIRED_ENV_VARS if not get_env(name)]
+    if missing:
+        raise RuntimeError(f"Missing required environment variables: {', '.join(missing)}")

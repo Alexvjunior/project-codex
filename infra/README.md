@@ -33,9 +33,9 @@ Este diretório contém a stack inicial AWS SAM para o MVP da Secretária IA.
 
 ## Comandos
 ```powershell
-./scripts/sam-validate.ps1
-./scripts/sam-build.ps1
-./scripts/sam-deploy-guided.ps1 -StackName secretaria-ia-dev -Region us-east-1
+./scripts/sam-validate.ps1 -Stage dev
+./scripts/sam-build.ps1 -Stage dev
+./scripts/sam-deploy-guided.ps1 -Stage dev
 ```
 
 ## Parâmetros importantes
@@ -43,3 +43,8 @@ Este diretório contém a stack inicial AWS SAM para o MVP da Secretária IA.
 - `Stage`: ambiente (`dev`, `staging`, `prod`).
 - `LogRetentionDays`: retenção dos logs.
 - `AlarmEmail`: e-mail para receber alarmes CloudWatch (opcional).
+
+## Estratégia de ambientes
+- Configuração SAM por ambiente: `samconfig.toml`
+- Valores por stage: `infra/environments/dev.env`, `staging.env`, `prod.env`
+- Convenções de segredos: `docs/ENVIRONMENTS.md`

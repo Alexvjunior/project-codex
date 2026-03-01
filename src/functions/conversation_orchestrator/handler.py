@@ -4,12 +4,16 @@ import uuid
 
 import boto3
 
+from shared.config import validate_runtime_env
+
 
 sqs = boto3.client("sqs")
 OUTBOUND_QUEUE_URL = os.getenv("OUTBOUND_QUEUE_URL", "")
 
 
 def lambda_handler(event, _context):
+    validate_runtime_env()
+
     records = event.get("Records", [])
     emitted = 0
 

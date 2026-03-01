@@ -1,7 +1,11 @@
 import json
 
+from shared.config import validate_runtime_env
+
 
 def lambda_handler(event, _context):
+    validate_runtime_env()
+
     sent = 0
     records = event.get("Records", [])
     for record in records:

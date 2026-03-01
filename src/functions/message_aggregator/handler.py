@@ -4,6 +4,8 @@ import uuid
 
 import boto3
 
+from shared.config import validate_runtime_env
+
 
 sqs = boto3.client("sqs")
 
@@ -11,6 +13,8 @@ TURN_QUEUE_URL = os.getenv("TURN_QUEUE_URL", "")
 
 
 def lambda_handler(event, _context):
+    validate_runtime_env()
+
     records = event.get("Records", [])
     if not records:
         return {"processed": 0}

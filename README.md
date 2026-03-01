@@ -14,7 +14,12 @@ Base de implementacao do MVP de secretaria virtual para nutricionistas (WhatsApp
 
 ## Infra (rapido)
 ```powershell
-./scripts/sam-validate.ps1
-./scripts/sam-build.ps1
-./scripts/sam-deploy-guided.ps1 -StackName secretaria-ia-dev -Region us-east-1
+./scripts/sam-validate.ps1 -Stage dev
+./scripts/sam-build.ps1 -Stage dev
+./scripts/sam-deploy-guided.ps1 -Stage dev
 ```
+
+## Ambientes
+- `samconfig.toml`: configuracao de deploy por ambiente (`dev`, `staging`, `prod`)
+- `infra/environments/*.env`: parametros por stage
+- `docs/ENVIRONMENTS.md`: estrategia de variaveis e segredos

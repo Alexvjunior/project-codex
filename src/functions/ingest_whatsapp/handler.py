@@ -5,6 +5,8 @@ import uuid
 import boto3
 from botocore.exceptions import ClientError
 
+from shared.config import validate_runtime_env
+
 
 sqs = boto3.client("sqs")
 dynamodb = boto3.client("dynamodb")
@@ -14,6 +16,8 @@ IDEMPOTENCY_TABLE = os.getenv("IDEMPOTENCY_TABLE", "")
 
 
 def lambda_handler(event, _context):
+    validate_runtime_env()
+
     body_raw = event.get("body") or "{}"
     body = json.loads(body_raw) if isinstance(body_raw, str) else body_raw
 
