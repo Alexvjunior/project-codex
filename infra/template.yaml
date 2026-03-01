@@ -393,7 +393,6 @@ Resources:
           Properties:
             Queue: !GetAtt InboundQueue.Arn
             BatchSize: 10
-            MaximumBatchingWindowInSeconds: 20
 
   ConversationOrchestratorFunction:
     Type: AWS::Serverless::Function
@@ -445,7 +444,6 @@ Resources:
           Properties:
             Queue: !GetAtt TurnQueue.Arn
             BatchSize: 5
-            MaximumBatchingWindowInSeconds: 5
 
   PaymentWebhookFunction:
     Type: AWS::Serverless::Function
@@ -543,7 +541,6 @@ Resources:
           Properties:
             Queue: !GetAtt OutboundQueue.Arn
             BatchSize: 10
-            MaximumBatchingWindowInSeconds: 5
 
   IngestWhatsappLogGroup:
     Type: AWS::Logs::LogGroup
